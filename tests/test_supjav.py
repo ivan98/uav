@@ -321,7 +321,8 @@ def test_is_url_vaildate_accepts_direct_url_source():
     assert s.is_url_vaildate() is True
 
 
-def test_direct_download_uses_parallel_ranges_and_assembles_file(monkeypatch, tmp_path):
+def test_direct_download_uses_parallel_ranges_and_assembles_file(
+        monkeypatch, tmp_path, capsys):
     payload = bytes(range(256)) * 1024
     calls = []
     calls_lock = threading.Lock()
@@ -375,6 +376,13 @@ def test_direct_download_uses_parallel_ranges_and_assembles_file(monkeypatch, tm
 
     range_calls = [value for value in calls if value != 'bytes=0-0']
     assert len(range_calls) == 2
+
+    # Regression: the Streamtape direct-download fallback used to report
+    # progress only via _progress_callback (unset on the CLI), so `uav-browser
+    # --nogui` showed no console output at all until the file finished.
+    out = capsys.readouterr().out
+    assert '下載中' in out
+    assert '%' in out
 
 
 def test_direct_parallel_range_resumes_after_connection_reset(monkeypatch, tmp_path):
@@ -457,7 +465,8 @@ def test_fst_hls_is_preferred_and_streamtape_is_fallback(monkeypatch):
     assert direct_calls == [True]
 
 
-def test_direct_download_keeps_serial_fallback_without_range_support(monkeypatch, tmp_path):
+def test_direct_download_keeps_serial_fallback_without_range_support(
+        monkeypatch, tmp_path, capsys):
     payload = b'serial-fallback-data'
 
     class ProbeResponse:
@@ -495,6 +504,27 @@ def test_direct_download_keeps_serial_fallback_without_range_support(monkeypatch
 
     assert crawler._download_direct() is True
     assert (tmp_path / 'serial.mp4').read_bytes() == payload
+
+    out = capsys.readouterr().out
+    assert '下載中' in out
+    assert '%' in out
+
+
+def test_format_direct_progress_omits_percent_and_eta_when_total_unknown():
+    line = supjav_mod._format_direct_progress(
+        done=1024 * 1024, total=0, speed=1024 * 1024)
+
+    assert '%' not in line
+    assert '剩餘' not in line
+    assert '1.0 MB' in line
+
+
+def test_format_direct_progress_shows_percent_and_eta_when_total_known():
+    line = supjav_mod._format_direct_progress(
+        done=25 * 1024 * 1024, total=100 * 1024 * 1024, speed=5 * 1024 * 1024)
+
+    assert '25%' in line
+    assert '剩餘' in line
 
 
 def test_create_m3u8_raises_on_zero_segments(monkeypatch):

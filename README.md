@@ -17,4 +17,7 @@ commit-by-commit history.
   `--filename-mode full-title` to get the GUI's default instead. Also fixed
   `code-only` leaving leading `[Tag][Tag]`-style bracket prefixes in the
   filename instead of just the actual code.
+- Fixed `uav-browser --nogui` showing no download progress for
+  SupJav/Hanime1's Streamtape fallback (it now prints downloaded/total MB,
+  percentage, speed, and ETA, matching the FST/HLS path).
 

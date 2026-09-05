@@ -138,6 +138,26 @@ def _content_range(value):
     return start, end, total
 
 
+def _format_direct_progress(done, total, speed):
+    """Console progress line for the Streamtape direct-MP4 fallback, matching
+    the style M3U8Crawler._scrape already prints for HLS segments."""
+    speed_str = (f"{speed/1024:.0f} KB/s" if speed < 1024 * 1024
+                 else f"{speed/1024/1024:.1f} MB/s")
+    done_mb = done / 1024 / 1024
+    if total <= 0:
+        return f'\r下載中: {done_mb:.1f} MB | {speed_str}  '
+    total_mb = total / 1024 / 1024
+    percent = done * 100 // total
+    remain = (total - done) / speed if speed > 0 else 0
+    if remain > 60:
+        minutes, seconds = divmod(int(remain), 60)
+        rem_str = f"{minutes}分 {seconds}秒"
+    else:
+        rem_str = f"{remain:.0f}秒"
+    return (f'\r下載中: {done_mb:.1f}/{total_mb:.1f} MB ({percent:.0f}%) | '
+            f'{speed_str} | 剩餘 {rem_str}  ')
+
+
 def _split_byte_ranges(total, workers=_DIRECT_RANGE_WORKERS):
     workers = min(max(1, int(workers)), total)
     chunk, remainder = divmod(total, workers)
@@ -445,6 +465,10 @@ class SiteSupJav(M3U8Crawler):
                                 current_done = done
                                 elapsed = time.time() - start_time
                                 speed = current_done / elapsed if elapsed > 0 else 0
+                                print(
+                                    _format_direct_progress(
+                                        current_done, total, speed),
+                                    end='', flush=True)
                                 if self._progress_callback:
                                     self._progress_callback(current_done, total, speed)
 
@@ -541,6 +565,9 @@ class SiteSupJav(M3U8Crawler):
                         received += len(chunk)
                         elapsed = time.time() - start_time
                         speed = done / elapsed if elapsed > 0 else 0
+                        print(
+                            _format_direct_progress(done, total, speed),
+                            end='', flush=True)
                         if self._progress_callback and total > 0:
                             self._progress_callback(done, total, speed)
 
