@@ -46,6 +46,31 @@ def test_parser_accepts_per_video_worker_limit():
     assert parsed.max_workers_per_video == 3
 
 
+def test_parser_accepts_filename_mode():
+    parsed = cli_args.get_parser().parse_args([
+        '--nogui', '--url', 'https://jable.tv/videos/example/',
+        '--filename-mode', 'code-only',
+    ])
+
+    assert parsed.filename_mode == 'code-only'
+
+
+def test_parser_defaults_filename_mode_to_code_only():
+    parsed = cli_args.get_parser().parse_args([
+        '--nogui', '--url', 'https://jable.tv/videos/example/',
+    ])
+
+    assert parsed.filename_mode == 'code-only'
+
+
+def test_parser_rejects_unknown_filename_mode():
+    with pytest.raises(SystemExit):
+        cli_args.get_parser().parse_args([
+            '--nogui', '--url', 'https://jable.tv/videos/example/',
+            '--filename-mode', 'bogus-mode',
+        ])
+
+
 def test_nogui_entrypoint_imports_downloader_and_forwards_output(
         monkeypatch, tmp_path):
     destination = str(tmp_path / 'downloads')
@@ -59,13 +84,14 @@ def test_nogui_entrypoint_imports_downloader_and_forwards_output(
             nogui=True,
             output=destination,
             max_workers_per_video=3,
+            filename_mode='code-only',
         ))
     fake_args.av_recommand = lambda: None
 
     fake_downloader = types.ModuleType('uav_downloader.sites')
     fake_downloader.consoles_main = (
-        lambda url, output, max_workers=None:
-        calls.append((url, output, max_workers)))
+        lambda url, output, max_workers=None, filename_mode=None:
+        calls.append((url, output, max_workers, filename_mode)))
 
     fake_gui = types.ModuleType('uav_downloader.apps.browse')
     fake_gui.gui_modern_main = lambda *_args: None
@@ -103,5 +129,5 @@ def test_nogui_entrypoint_imports_downloader_and_forwards_output(
     assert caught.value.code == 0
 
     assert calls == [
-        ('https://jable.tv/videos/example/', destination, 3),
+        ('https://jable.tv/videos/example/', destination, 3, 'code-only'),
     ]

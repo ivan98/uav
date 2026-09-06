@@ -53,22 +53,22 @@ def VaildateUrl(url):  # noqa: N802 - legacy API typo retained for v2 callers
     return validate_url(url)
 
 
-def create_site(url, savepath="", silence=False, max_workers=None):
+def create_site(url, savepath="", silence=False, max_workers=None,
+                 filename_mode=None):
     site = validate_url(url)
     if site is None:
         return None
-    if max_workers is None:
-        return site(url, savepath=savepath, silence=silence)
-    return site(
-        url,
-        savepath=savepath,
-        silence=silence,
-        max_workers=max_workers,
-    )
+    kwargs = {}
+    if max_workers is not None:
+        kwargs['max_workers'] = max_workers
+    if filename_mode is not None:
+        kwargs['filename_mode'] = filename_mode
+    return site(url, savepath=savepath, silence=silence, **kwargs)
 
 
-def CreateSite(url, savepath="", silence=False, max_workers=None):  # noqa: N802
-    return create_site(url, savepath, silence, max_workers)
+def CreateSite(url, savepath="", silence=False, max_workers=None,  # noqa: N802
+               filename_mode=None):
+    return create_site(url, savepath, silence, max_workers, filename_mode)
 
 
 def create_site_url_list(url, silence=False):
@@ -83,10 +83,11 @@ def CreateSiteUrlList(url, silence=False):  # noqa: N802
     return create_site_url_list(url, silence)
 
 
-def consoles_main(url, dest=None, max_workers=None):
+def consoles_main(url, dest=None, max_workers=None, filename_mode=None):
     if not url:
         url = input("輸入支援的網址: ")
-    job = create_site(url, dest, max_workers=max_workers)
+    job = create_site(
+        url, dest, max_workers=max_workers, filename_mode=filename_mode)
     if job and job.is_url_vaildate():
         job.start_download()
         print("下載完成!")

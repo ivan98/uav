@@ -150,11 +150,17 @@ uav-watcher
 
 # One URL, no GUI, with an explicit output directory and 3 workers per video
 uav-browser --nogui --url "https://jable.tv/videos/example/" --output "/path/to/downloads" --max-workers-per-video 3
+
+# Same, but keep the code and the full title in the saved filename
+uav-browser --nogui --url "https://jable.tv/videos/example/" --filename-mode full-title
 ```
 
 `-o` is the short form of `--output`. If omitted, downloads are saved under
 `./download`. `--max-workers-per-video` accepts 1–16 and can be lowered to
-reduce proxy load.
+reduce proxy load. `--filename-mode` accepts `code-only` (everything before
+the first whitespace, the CLI default) or `full-title` (code + full title,
+the GUI's default); the CLI default does not depend on the GUI's saved
+filename-format setting.
 
 On Linux, install `python3-tk` with your system package manager if Tk is not already available. macOS and Linux run from source; the portable EXE release is for Windows.
 

@@ -54,7 +54,8 @@ def main():
 
     if args.nogui:
         M3U8Sites.consoles_main(
-            url_arg, args.output, args.max_workers_per_video)
+            url_arg, args.output, args.max_workers_per_video,
+            args.filename_mode)
     elif _USE_MODERN:
         _gui_main(url_arg, args.output)
     else:

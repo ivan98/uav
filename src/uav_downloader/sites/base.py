@@ -92,6 +92,7 @@ def _apply_filename_mode(value, mode):
     name = str(value or '').strip()
     if config.normalize_filename_mode(mode) != 'code-only' or not name:
         return name
+    name = re.sub(r'^(?:\[[^\[\]]*\]\s*)+', '', name)
     return name.split(maxsplit=1)[0]
 
 
@@ -494,7 +495,8 @@ class M3U8Crawler:
         if result: return result.group(1)
         return None
 
-    def __init__(self, url, savepath="", silence=False, max_workers=None):
+    def __init__(self, url, savepath="", silence=False, max_workers=None,
+                 filename_mode=None):
         self.silence = silence
         self._tsList = []
         self._key_content = None   # raw bytes of AES key
@@ -531,7 +533,9 @@ class M3U8Crawler:
         self._segment_retry_max_delay = max(
             self._segment_retry_base_delay,
             float(getattr(self, 'segment_retry_max_delay', 6.0)))
-        self._filename_mode = config.get_filename_mode()
+        if filename_mode is None:
+            filename_mode = config.get_filename_mode()
+        self._filename_mode = config.normalize_filename_mode(filename_mode)
         self._progress_callback = None   # (downloaded, total, speed_bps) -> None
         self._speed_lock = threading.Lock()
         self._bytes_downloaded = 0

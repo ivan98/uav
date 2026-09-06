@@ -18,3 +18,31 @@ is not repeated here.
   `PYTHONPATH` so compiled wheels (numpy, ctranslate2, tkinter's
   `_tkinter`, etc.) load correctly under NixOS's non-FHS layout. Added
   `.envrc` for direnv.
+- **(major)** Added `--filename-mode {full-title,code-only}` to `uav-browser
+  --nogui`, matching the filename-format setting that was previously GUI-only.
+  Threaded an optional `filename_mode` override through
+  `M3U8Crawler.__init__`, `create_site`/`CreateSite`, and `consoles_main`.
+  Defaults to a hardcoded `code-only` — the CLI does not depend on
+  `ui_prefs.json`'s `filename_mode`; pass `--filename-mode full-title`
+  explicitly to get the GUI's default instead. GUI behavior is unchanged.
+  Also fixes `_apply_filename_mode` leaving leading `[Tag][Tag]`-style
+  bracket prefixes in place under `code-only` — it previously just kept
+  everything before the first whitespace, so a title like
+  `[Uncensored][Leaked] ABCD-123 ...` produced `[Uncensored][Leaked]`
+  instead of the actual code; now strips any run of leading
+  `[...]`-bracketed segments first. Documented the flag in `README.en.md`
+  and added regression tests in `tests/test_nogui_cli.py` and
+  `tests/test_filename_mode.py`.
+- **(major)** Fixed `uav-browser --nogui` showing no download progress for
+  SupJav/Hanime1's Streamtape (ST) fallback. The FST (fc2stream HLS) path
+  already printed progress via the shared `M3U8Crawler._scrape` segment
+  loop; the ST progressive-MP4 fallback (`SiteSupJav._download_direct_ranges`
+  / `_download_direct_serial`) only invoked `_progress_callback`, a hook the
+  GUI wires to its progress bar but the CLI never sets. Added a
+  `_format_direct_progress` helper and console `print` alongside the
+  existing callback, showing downloaded/total MB, percentage, speed, and ETA
+  (falls back to bytes-only when the server doesn't report a total size).
+  `SiteHanime1` inherits the same code path, so its Streamtape fallback is
+  fixed too. Added regression tests in `tests/test_supjav.py`.
+
+## 2026-09-06

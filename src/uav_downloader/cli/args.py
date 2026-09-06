@@ -32,6 +32,14 @@ def get_parser():
             config.MAX_WORKERS_PER_VIDEO + 1),
         default=None, metavar="N",
         help="Maximum segment download workers per video (1-16)")
+    parser.add_argument(
+        "--filename-mode", type=str,
+        choices=sorted(config.VALID_FILENAME_MODES),
+        default='code-only',
+        help=(
+            "Output filename format: code-only (everything before the "
+            "first whitespace, default for the CLI) or full-title (code + "
+            "full title, the GUI's default)"))
 
     return parser
 
