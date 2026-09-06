@@ -36,6 +36,12 @@ To process a list, write one URL per line to `./downloads/urls.txt`, then run:
 docker compose run --rm uav
 ```
 
+If no URL was passed and `urls.txt` doesn't exist yet (or is empty), the
+container waits for it instead of exiting — event-driven via filesystem
+notifications, not polling. Set `URLS_WATCH_MODE=forever` to keep the
+container running and pick up new lines appended to `urls.txt` later,
+without needing to restart it for each new URL.
+
 Supported environment variables:
 
 | Variable | Purpose |
@@ -43,6 +49,7 @@ Supported environment variables:
 | `DOWNLOAD_DIR` | Container destination; default `/downloads` |
 | `URL` / `URLS` | One or more URLs |
 | `URLS_FILE` | Mounted URL list; default `/downloads/urls.txt` |
+| `URLS_WATCH_MODE` | `once` (default, exit after processing what's found) or `forever` (keep watching `urls.txt` and never exit) |
 | `RESOLUTION` | `highest`, `1080`, `720`, `480`, `360`, or `lowest` |
 | `MAX_WORKERS_PER_VIDEO` | Segment-worker limit from 1–16 |
 
@@ -53,6 +60,10 @@ After an editable or package installation:
 ```bash
 uav-downloader-cli "https://jable.tv/videos/example/"
 uav-browser --nogui --url "https://jable.tv/videos/example/" -o ./download
+
+# No --url: wait for URLs in ./download/urls.txt instead of prompting
+uav-browser --nogui --watch-urls-file once -o ./download
+uav-browser --nogui --watch-urls-file forever -o ./download
 ```
 
 The first command follows the Docker-style URL and environment interface. The

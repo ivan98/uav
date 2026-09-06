@@ -153,6 +153,10 @@ uav-browser --nogui --url "https://jable.tv/videos/example/" --output "/path/to/
 
 # Same, but keep the code and the full title in the saved filename
 uav-browser --nogui --url "https://jable.tv/videos/example/" --filename-mode full-title
+
+# No --url: wait for URLs in ./download/urls.txt instead of prompting
+uav-browser --nogui --watch-urls-file once
+uav-browser --nogui --watch-urls-file forever --output "/path/to/downloads"
 ```
 
 `-o` is the short form of `--output`. If omitted, downloads are saved under
@@ -160,7 +164,11 @@ uav-browser --nogui --url "https://jable.tv/videos/example/" --filename-mode ful
 reduce proxy load. `--filename-mode` accepts `code-only` (everything before
 the first whitespace, the CLI default) or `full-title` (code + full title,
 the GUI's default); the CLI default does not depend on the GUI's saved
-filename-format setting.
+filename-format setting. `--watch-urls-file {once,forever}` only applies
+when `--url` is omitted: instead of the default interactive prompt, it
+waits for URLs to appear in `<output>/urls.txt` (event-driven, no polling)
+— `once` processes what's found then exits, `forever` keeps watching
+indefinitely for newly appended URLs.
 
 On Linux, install `python3-tk` with your system package manager if Tk is not already available. macOS and Linux run from source; the portable EXE release is for Windows.
 
@@ -187,7 +195,8 @@ Environment variables:
 | `RESOLUTION` | `highest`, `1080`, `720`, `480`, `360`, or `lowest` |
 | `MAX_WORKERS_PER_VIDEO` | Maximum segment workers per video, from 1–16; lower it to reduce proxy load |
 | `URL` / `URLS` | Pass one or more URLs |
-| `URLS_FILE` | URL list; defaults to `/downloads/urls.txt` |
+| `URLS_FILE` | URL list; defaults to `/downloads/urls.txt`. If no URL is passed and this file doesn't exist (or is empty) yet, the container waits for it instead of exiting |
+| `URLS_WATCH_MODE` | `once` (default, exit after processing what's found) or `forever` (keep watching `URLS_FILE` and never exit) |
 | `DOWNLOAD_DIR` | Container destination; defaults to `/downloads` |
 
 Docker is a headless, run-to-completion download job. It does not contain the UAV Browser or UAV Watcher GUI.

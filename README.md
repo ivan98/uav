@@ -29,3 +29,11 @@ commit-by-commit history.
   error messages a SupJav download hits on failure (shared m3u8/AES parsing
   errors, and SupJav's own page-parse / no-source / direct-download error
   messages).
+- The Docker/NAS CLI no longer exits immediately when no URL is given and
+  `urls.txt` doesn't exist yet — it now waits for the file (event-driven,
+  no polling). New `URLS_WATCH_MODE=once|forever` env var; `forever` keeps
+  the container running and picks up new URLs appended to `urls.txt` later.
+  `uav-browser --nogui` gets the same behavior via a new opt-in
+  `--watch-urls-file {once,forever}` flag when `--url` is omitted — without
+  the flag, it still falls back to the interactive prompt exactly as
+  before.

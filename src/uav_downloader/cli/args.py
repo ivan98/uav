@@ -40,6 +40,14 @@ def get_parser():
             "Output filename format: code-only (everything before the "
             "first whitespace, default for the CLI) or full-title (code + "
             "full title, the GUI's default)"))
+    parser.add_argument(
+        "--watch-urls-file", type=str,
+        choices=("once", "forever"), default=None, metavar="MODE",
+        help=(
+            "When --url is omitted, wait for URLs in <output>/urls.txt "
+            "instead of prompting on stdin: 'once' processes what's found "
+            "then exits, 'forever' keeps watching indefinitely for newly "
+            "appended URLs. Ignored when --url is given."))
 
     return parser
 

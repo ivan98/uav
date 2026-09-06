@@ -150,9 +150,13 @@ uav-watcher
 
 # 1 件の URL を GUI なしで、保存先と動画ごとの 3 ワーカーを指定して実行
 uav-browser --nogui --url "https://jable.tv/videos/example/" --output "/path/to/downloads" --max-workers-per-video 3
+
+# --url を省略：入力を促す代わりに ./download/urls.txt に URL が現れるのを待つ
+uav-browser --nogui --watch-urls-file once
+uav-browser --nogui --watch-urls-file forever --output "/path/to/downloads"
 ```
 
-`-o` は `--output` の短縮形です。省略すると `./download` に保存されます。`--max-workers-per-video` は 1–16 を受け付け、Proxy の負荷を下げる場合は小さくできます。
+`-o` は `--output` の短縮形です。省略すると `./download` に保存されます。`--max-workers-per-video` は 1–16 を受け付け、Proxy の負荷を下げる場合は小さくできます。`--watch-urls-file {once,forever}` は `--url` を省略した場合のみ有効です。入力プロンプトの代わりに `<output>/urls.txt` に URL が現れるのを待ちます（イベント駆動、ポーリングなし）。`once` は見つかった内容を処理して終了し、`forever` は新たに追加された URL を監視し続けます。
 
 Linux に Tk がない場合は、システムのパッケージマネージャーで `python3-tk` をインストールしてください。macOS／Linux はソースコードから実行し、インストール不要の EXE は Windows Release のみで提供されます。
 
@@ -179,7 +183,8 @@ docker compose run --rm uav
 | `RESOLUTION` | `highest`、`1080`、`720`、`480`、`360`、`lowest` |
 | `MAX_WORKERS_PER_VIDEO` | 動画ごとのセグメントワーカー上限（1–16）。小さくすると Proxy の負荷を軽減できます |
 | `URL` / `URLS` | 1 件以上の URL を渡す |
-| `URLS_FILE` | URL リスト。既定は `/downloads/urls.txt` |
+| `URLS_FILE` | URL リスト。既定は `/downloads/urls.txt`。URL が渡されず、このファイルがまだ存在しない（または空の）場合、コンテナは終了せずに待機します |
+| `URLS_WATCH_MODE` | `once`（既定。見つかったものを処理して終了）または `forever`（`URLS_FILE` を監視し続け、終了しない） |
 | `DOWNLOAD_DIR` | コンテナ内の保存先。既定は `/downloads` |
 
 Docker は GUI なしで処理完了後に終了するダウンロードジョブです。UAV Browser または UAV Watcher の GUI は含まれません。

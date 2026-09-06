@@ -72,3 +72,26 @@ is not repeated here.
   scope for this pass, still hardcoded zh-TW: `sites/missav.py` and
   `sites/hanime1.py`'s own error strings, `sites/jabletv.py`'s listing-page
   print, and the Docker/NAS `cli/headless.py` entrypoint.
+- **(major)** The `uav-downloader` Docker/NAS CLI (`cli/headless.py`) no
+  longer fails immediately with exit code 2 when no URL was given and
+  `urls.txt` doesn't exist yet — it now waits for the file to be created or
+  written to, event-driven via the new `watchdog` dependency (not polling).
+  Added `src/uav_downloader/core/urls_watch.py`'s `iter_url_batches()`,
+  shared logic that yields batches of not-yet-seen URLs from a
+  line-delimited file, blocking between batches as needed. New
+  `$URLS_WATCH_MODE` env var: `once` (default — process whatever shows up,
+  then exit, matching today's one-shot semantics) or `forever` (never
+  exit; new lines appended to `urls.txt` later are picked up and downloaded
+  without restarting the container). Dedup in `forever` mode is in-memory
+  only, not persisted across restarts. `uav-browser --nogui` reuses the
+  same `iter_url_batches()` via a new opt-in `--watch-urls-file
+  {once,forever}` flag that only takes effect when `--url` is omitted —
+  without the flag, omitting `--url` still falls back to today's `input()`
+  prompt exactly as before, so this is fully backward-compatible.
+  `consoles_main` (`sites/__init__.py`) is restructured to loop over
+  batches of URLs instead of handling exactly one; a directly-supplied
+  `--url` still takes the same fast path as before, bypassing the watch
+  logic entirely. Added `watchdog>=4.0.0` to
+  `requirements.txt`/`requirements-docker.txt`. Documented in
+  `cli/args.py`'s help text, `docs/docker-cli.md`, and all four README
+  locales.

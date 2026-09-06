@@ -150,9 +150,13 @@ uav-watcher
 
 # 单个网址、无 GUI，并指定保存位置与每片 3 个下载线程
 uav-browser --nogui --url "https://jable.tv/videos/example/" --output "/path/to/downloads" --max-workers-per-video 3
+
+# 未指定 --url：改为等待 ./download/urls.txt 出现网址，而不是提示输入
+uav-browser --nogui --watch-urls-file once
+uav-browser --nogui --watch-urls-file forever --output "/path/to/downloads"
 ```
 
-`-o` 是 `--output` 的简写；若省略，默认保存在 `./download`。`--max-workers-per-video` 接受 1–16，可在 Proxy 负载较高时调低。
+`-o` 是 `--output` 的简写；若省略，默认保存在 `./download`。`--max-workers-per-video` 接受 1–16，可在 Proxy 负载较高时调低。`--watch-urls-file {once,forever}` 仅在未指定 `--url` 时生效：不再提示输入，而是等待 `<output>/urls.txt` 出现网址（事件驱动，非轮询）——`once` 处理找到的内容后退出，`forever` 会持续监视新增的网址。
 
 Linux 若未内置 Tk，请先通过系统包管理器安装 `python3-tk`。macOS／Linux 使用源代码运行；免安装 EXE 仅提供给 Windows。
 
@@ -179,7 +183,8 @@ docker compose run --rm uav
 | `RESOLUTION` | `highest`、`1080`、`720`、`480`、`360`、`lowest` |
 | `MAX_WORKERS_PER_VIDEO` | 每个视频的分段工作线程上限，范围 1–16；调低可减轻 Proxy 负载 |
 | `URL` / `URLS` | 传入一个或多个网址 |
-| `URLS_FILE` | 网址列表；默认为 `/downloads/urls.txt` |
+| `URLS_FILE` | 网址列表；默认为 `/downloads/urls.txt`。若未传入网址且此文件尚不存在（或为空），容器会等待它出现，而不是直接退出 |
+| `URLS_WATCH_MODE` | `once`（默认，处理找到的内容后退出）或 `forever`（持续监视 `URLS_FILE`，永不退出） |
 | `DOWNLOAD_DIR` | 容器内保存位置；默认为 `/downloads` |
 
 Docker 是无界面、执行完即退出的下载任务，不包含 UAV Browser 或 UAV Watcher GUI。

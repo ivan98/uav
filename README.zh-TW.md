@@ -150,9 +150,13 @@ uav-watcher
 
 # 單一網址、無 GUI，並指定下載位置與每片 3 個下載執行緒
 uav-browser --nogui --url "https://jable.tv/videos/example/" --output "/path/to/downloads" --max-workers-per-video 3
+
+# 未指定 --url：改為等待 ./download/urls.txt 出現網址，而不是提示輸入
+uav-browser --nogui --watch-urls-file once
+uav-browser --nogui --watch-urls-file forever --output "/path/to/downloads"
 ```
 
-`-o` 是 `--output` 的縮寫；若省略，預設會儲存在 `./download`。`--max-workers-per-video` 接受 1–16，可在 Proxy 負載較高時調低。
+`-o` 是 `--output` 的縮寫；若省略，預設會儲存在 `./download`。`--max-workers-per-video` 接受 1–16，可在 Proxy 負載較高時調低。`--watch-urls-file {once,forever}` 僅在未指定 `--url` 時生效：不再提示輸入，而是等待 `<output>/urls.txt` 出現網址（事件驅動，非輪詢）——`once` 處理找到的內容後結束，`forever` 會持續監看新增的網址。
 
 Linux 若未內建 Tk，請先用系統套件管理器安裝 `python3-tk`。macOS／Linux 是原始碼執行方式；Windows Release 才提供免安裝 EXE。
 
@@ -179,7 +183,8 @@ docker compose run --rm uav
 | `RESOLUTION` | `highest`、`1080`、`720`、`480`、`360`、`lowest` |
 | `MAX_WORKERS_PER_VIDEO` | 每部影片的分段工作執行緒上限，範圍 1–16；調低可減少 Proxy 負載 |
 | `URL` / `URLS` | 傳入一個或多個網址 |
-| `URLS_FILE` | 網址清單；預設 `/downloads/urls.txt` |
+| `URLS_FILE` | 網址清單；預設 `/downloads/urls.txt`。若未傳入網址且此檔案尚不存在（或是空的），容器會等待它出現，而不是直接結束 |
+| `URLS_WATCH_MODE` | `once`（預設，處理找到的內容後結束）或 `forever`（持續監看 `URLS_FILE`，永不結束） |
 | `DOWNLOAD_DIR` | 容器內儲存位置；預設 `/downloads` |
 
 Docker 是無介面、執行完即結束的下載工作，不包含 UAV Browser 或 UAV Watcher GUI。

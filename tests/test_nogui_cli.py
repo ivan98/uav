@@ -71,6 +71,31 @@ def test_parser_rejects_unknown_filename_mode():
         ])
 
 
+def test_parser_defaults_watch_urls_file_to_none():
+    parsed = cli_args.get_parser().parse_args([
+        '--nogui', '--url', 'https://jable.tv/videos/example/',
+    ])
+
+    assert parsed.watch_urls_file is None
+
+
+def test_parser_accepts_watch_urls_file_modes():
+    once = cli_args.get_parser().parse_args(
+        ['--nogui', '--watch-urls-file', 'once'])
+    forever = cli_args.get_parser().parse_args(
+        ['--nogui', '--watch-urls-file', 'forever'])
+
+    assert once.watch_urls_file == 'once'
+    assert forever.watch_urls_file == 'forever'
+
+
+def test_parser_rejects_unknown_watch_urls_file_mode():
+    with pytest.raises(SystemExit):
+        cli_args.get_parser().parse_args([
+            '--nogui', '--watch-urls-file', 'bogus-mode',
+        ])
+
+
 def test_nogui_entrypoint_imports_downloader_and_forwards_output(
         monkeypatch, tmp_path):
     destination = str(tmp_path / 'downloads')
@@ -85,13 +110,16 @@ def test_nogui_entrypoint_imports_downloader_and_forwards_output(
             output=destination,
             max_workers_per_video=3,
             filename_mode='code-only',
+            watch_urls_file=None,
         ))
     fake_args.av_recommand = lambda: None
 
     fake_downloader = types.ModuleType('uav_downloader.sites')
     fake_downloader.consoles_main = (
-        lambda url, output, max_workers=None, filename_mode=None:
-        calls.append((url, output, max_workers, filename_mode)))
+        lambda url, output, max_workers=None, filename_mode=None,
+        watch_urls_file=None:
+        calls.append(
+            (url, output, max_workers, filename_mode, watch_urls_file)))
 
     fake_gui = types.ModuleType('uav_downloader.apps.browse')
     fake_gui.gui_modern_main = lambda *_args: None
@@ -129,5 +157,5 @@ def test_nogui_entrypoint_imports_downloader_and_forwards_output(
     assert caught.value.code == 0
 
     assert calls == [
-        ('https://jable.tv/videos/example/', destination, 3, 'code-only'),
+        ('https://jable.tv/videos/example/', destination, 3, 'code-only', None),
     ]
