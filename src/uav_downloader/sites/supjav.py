@@ -19,6 +19,7 @@ from uav_downloader.sites.base import _get_session
 from uav_downloader.sites.missav import _unpack_js_eval
 from bs4 import BeautifulSoup
 from uav_downloader.i18n import sites as site_i18n
+from uav_downloader.i18n.locales import T
 from uav_downloader.core import config
 
 
@@ -145,17 +146,19 @@ def _format_direct_progress(done, total, speed):
                  else f"{speed/1024/1024:.1f} MB/s")
     done_mb = done / 1024 / 1024
     if total <= 0:
-        return f'\r下載中: {done_mb:.1f} MB | {speed_str}  '
+        return '\r' + T('console_download_progress_mb_unknown',
+                         done_mb=done_mb, speed=speed_str)
     total_mb = total / 1024 / 1024
     percent = done * 100 // total
     remain = (total - done) / speed if speed > 0 else 0
     if remain > 60:
         minutes, seconds = divmod(int(remain), 60)
-        rem_str = f"{minutes}分 {seconds}秒"
+        rem_str = T('console_unit_min_sec', m=minutes, s=seconds)
     else:
-        rem_str = f"{remain:.0f}秒"
-    return (f'\r下載中: {done_mb:.1f}/{total_mb:.1f} MB ({percent:.0f}%) | '
-            f'{speed_str} | 剩餘 {rem_str}  ')
+        rem_str = T('console_unit_sec', s=remain)
+    return '\r' + T('console_download_progress_mb', done_mb=done_mb,
+                     total_mb=total_mb, percent=percent, speed=speed_str,
+                     eta=rem_str)
 
 
 def _split_byte_ranges(total, workers=_DIRECT_RANGE_WORKERS):
@@ -226,12 +229,12 @@ class SiteSupJav(M3U8Crawler):
             if reason == 'blocked':
                 raise MirrorsBlockedError(_BLOCKED_MSG)
             if reason != 'ok':
-                raise Exception(f"頁面解析失敗（版面改版或影片不存在）: {self._url}")
+                raise Exception(T('console_page_parse_failed', url=self._url))
 
             soup = BeautifulSoup(htmlfile.content, 'html.parser')
             servers = _server_links(htmlfile.text)   # {'TV':.., 'ST':.., 'VOE':.., 'FST':..}
             if not servers:
-                raise Exception("此影片沒有可用的伺服器來源（版面改版？）")
+                raise Exception(T('console_no_server_source'))
 
             m3u8url = None
             m3u8_headers = None
@@ -293,8 +296,7 @@ class SiteSupJav(M3U8Crawler):
                     m3u8url = None
 
             if not self._direct_url and not m3u8url:
-                raise Exception("此影片目前無可用下載來源"
-                                "（TV 區段受 Google 限制，且此片無 FST/Streamtape 備援）")
+                raise Exception(T('console_no_download_source'))
 
         title = _extract_title(soup)
         self._targetName = html.unescape(title)
@@ -338,7 +340,7 @@ class SiteSupJav(M3U8Crawler):
         self._cancel_job = False
         self._create_dest_folder()
         if self.is_target_video_exist():
-            print("檔案已存在!!", flush=True)
+            print(T('console_file_exists'), flush=True)
             return True
         out = self._get_video_savename()
         part = out + '.part'
@@ -369,13 +371,13 @@ class SiteSupJav(M3U8Crawler):
             return False
         if total > 0 and done < int(total * 0.98):
             self._safe_remove(part)
-            raise Exception("下載不完整（連線中斷？請重試）")
+            raise Exception(T('console_download_incomplete'))
         try:
             os.replace(part, out)
         except Exception:
             self._safe_remove(part)
             raise
-        print(f"\n下載完成: {os.path.basename(out)}", flush=True)
+        print('\n' + T('console_download_complete_named', name=os.path.basename(out)), flush=True)
         return True
 
     def _download_direct_ranges(self, part, ref, start_time):
@@ -443,7 +445,7 @@ class SiteSupJav(M3U8Crawler):
                         getattr(response, 'headers', {}).get('content-range'))
                     if (getattr(response, 'status_code', 0) != 206 or
                             response_range != (cursor, range_end, total)):
-                        raise Exception("直接下載來源未正確回應分段請求")
+                        raise Exception(T('console_direct_range_bad_response'))
 
                     received = 0
                     with open(part, 'r+b', buffering=0) as target:
@@ -454,10 +456,10 @@ class SiteSupJav(M3U8Crawler):
                             if not chunk:
                                 continue
                             if written + len(chunk) > expected:
-                                raise Exception("直接下載分段長度超出預期")
+                                raise Exception(T('console_direct_segment_overflow'))
                             speed_limiter.acquire(len(chunk))
                             if target.write(chunk) != len(chunk):
-                                raise Exception("直接下載寫入失敗")
+                                raise Exception(T('console_direct_write_failed'))
                             written += len(chunk)
                             received += len(chunk)
                             with progress_lock:
@@ -475,8 +477,9 @@ class SiteSupJav(M3U8Crawler):
                     if self._cancel_job or stop_event.is_set():
                         break
                     if written < expected:
-                        detail = "未收到資料" if received == 0 else "連線提前結束"
-                        raise Exception(f"直接下載分段{detail}")
+                        raise Exception(
+                            T('console_direct_segment_no_data') if received == 0
+                            else T('console_direct_segment_conn_early_end'))
                 except Exception:
                     if self._cancel_job or stop_event.is_set():
                         break
@@ -492,7 +495,7 @@ class SiteSupJav(M3U8Crawler):
                             pass
 
             if not self._cancel_job and not stop_event.is_set() and written != expected:
-                raise Exception("直接下載分段不完整（連線中斷？請重試）")
+                raise Exception(T('console_direct_segment_incomplete'))
             return written
 
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=len(ranges))
@@ -513,7 +516,7 @@ class SiteSupJav(M3U8Crawler):
         if self._cancel_job:
             return done, total
         if done != total:
-            raise Exception("直接下載不完整（連線中斷？請重試）")
+            raise Exception(T('console_direct_incomplete'))
         return done, total
 
     def _download_direct_serial(self, part, ref, start_time):
@@ -540,7 +543,7 @@ class SiteSupJav(M3U8Crawler):
                     getattr(resp, 'headers', {}).get('content-range'))
                 if done:
                     if status != 206 or not response_range or response_range[0] != done:
-                        raise Exception(f"直接續傳失敗 (HTTP {status})")
+                        raise Exception(T('console_direct_resume_failed', status=status))
                     total = response_range[2]
                 elif status == 206 and response_range:
                     total = response_range[2]
@@ -550,7 +553,7 @@ class SiteSupJav(M3U8Crawler):
                     except Exception:
                         total = 0
                 else:
-                    raise Exception(f"直接下載失敗 (HTTP {status})")
+                    raise Exception(T('console_direct_failed_http', status=status))
 
                 received = 0
                 with open(part, 'ab' if done else 'wb') as target:
@@ -577,7 +580,7 @@ class SiteSupJav(M3U8Crawler):
                     return done, total
                 if total == 0 and received > 0:
                     return done, done
-                raise Exception("直接下載連線提前結束")
+                raise Exception(T('console_direct_conn_ended_early'))
             except Exception:
                 if self._cancel_job:
                     break

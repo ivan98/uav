@@ -46,3 +46,29 @@ is not repeated here.
   fixed too. Added regression tests in `tests/test_supjav.py`.
 
 ## 2026-09-06
+
+- **(major)** Wired `uav-browser --nogui`'s console output through the
+  existing `i18n` system instead of hardcoded Traditional Chinese. The GUI
+  already called `set_lang(config.get_ui_lang() or 'en')` and rendered every
+  label via `T(key)`; the headless path (`consoles_main` in
+  `sites/__init__.py`, and every progress/status `print`/`raise Exception` in
+  `sites/base.py` and `sites/supjav.py` — file name, save location, segment
+  counts, merge/remux progress, download-complete, cancel, error messages)
+  never imported `i18n` at all, so it printed raw zh-TW literals regardless
+  of the user's language preference or locale. Added ~30 new `console_*`
+  translation keys (en/zh/zh-Hans/ja) to `i18n/locales.py` and call
+  `set_lang(config.get_ui_lang() or 'en')` at the top of `consoles_main`, so
+  `--nogui` now defaults to English (or the persisted GUI language) like the
+  GUI does. This first pass only covered the happy path, though — on
+  failure, `sites/base.py`'s shared `_load_m3u8`/`_create_m3u8` (m3u8
+  fetch/content-invalid, AES key fetch, no valid segments — used by every
+  site's FST/HLS path, supjav.com included) and `sites/supjav.py`'s own ~12
+  exceptions (page-parse failure, no server source, and the whole
+  Streamtape (ST) direct-download error path: range mismatch, segment
+  overflow, write failure, no data / connection-ended-early, resume/HTTP
+  failure, incomplete download) were still hardcoded zh-TW, directly
+  reachable from a plain SupJav download via `uav-browser --nogui`. Added
+  16 more `console_*` keys (en/zh/zh-Hans/ja) to cover them too. Out of
+  scope for this pass, still hardcoded zh-TW: `sites/missav.py` and
+  `sites/hanime1.py`'s own error strings, `sites/jabletv.py`'s listing-page
+  print, and the Docker/NAS `cli/headless.py` entrypoint.

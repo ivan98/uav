@@ -21,3 +21,11 @@ commit-by-commit history.
   SupJav/Hanime1's Streamtape fallback (it now prints downloaded/total MB,
   percentage, speed, and ETA, matching the FST/HLS path).
 
+### 2026-09-06
+
+- Fixed `uav-browser --nogui` always printing console output in Traditional
+  Chinese regardless of language/locale settings. It now goes through the
+  same `i18n` system as the GUI and defaults to English, including the
+  error messages a SupJav download hits on failure (shared m3u8/AES parsing
+  errors, and SupJav's own page-parse / no-source / direct-download error
+  messages).

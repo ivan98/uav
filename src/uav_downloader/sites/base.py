@@ -16,6 +16,7 @@ except Exception:
 import urllib.request
 import m3u8
 from uav_downloader.core import config
+from uav_downloader.i18n.locales import T
 from Crypto.Cipher import AES
 from uav_downloader.core.config import headers
 import concurrent.futures
@@ -568,14 +569,14 @@ class M3U8Crawler:
                     self._targetName = _truncate_target_name(
                         self._targetName, self._dest_folder, self._dirName)
                 if not self.silence:
-                    if self._targetName: print("檔案名稱: " + self._targetName, flush=True)
-                    if self._dest_folder: print("儲存位置: " + self._dest_folder, flush=True)
-                    if self._imageUrl: print("縮圖: " + self._imageUrl, flush=True)
+                    if self._targetName: print(T('console_filename', name=self._targetName), flush=True)
+                    if self._dest_folder: print(T('console_save_location', path=self._dest_folder), flush=True)
+                    if self._imageUrl: print(T('console_thumbnail', url=self._imageUrl), flush=True)
 
         except Exception as exc:
             self._last_error = exc
             self._targetName = self._imageUrl = self._m3u8url = None
-            print(f"下載網址 {url} 錯誤!! ({exc})", flush=True)
+            print(T('console_url_error', url=url, error=exc), flush=True)
 
     def get_url_infos(self): raise Exception("Must implement get_url_infos()")
     def target_name(self): return self._targetName
@@ -639,7 +640,7 @@ class M3U8Crawler:
         if status != 200:
             if _is_cf_block_resp(resp):
                 raise MirrorsBlockedError(_CDN_BLOCKED_MSG)
-            raise Exception(f"m3u8 取得失敗 (HTTP {status}): {url}")
+            raise Exception(T('console_m3u8_fetch_failed', status=status, url=url))
         text = resp.text or ''
         if '#EXTM3U' not in text:
             content = getattr(resp, 'content', b'') or b''
@@ -648,7 +649,7 @@ class M3U8Crawler:
                 head = head.encode('utf-8', errors='ignore')
             if _is_cf_block_resp(resp) or b'cloudflare' in head.lower():
                 raise MirrorsBlockedError(_CDN_BLOCKED_MSG)
-            raise Exception(f"m3u8 內容無效（可能被阻擋或改版）: {url}")
+            raise Exception(T('console_m3u8_invalid', url=url))
         return m3u8.loads(text, uri=str(getattr(resp, 'url', url)))
 
     def _getm3u8PlayList(self, uri):
@@ -690,7 +691,7 @@ class M3U8Crawler:
                 if resp.status_code != 200 or blocked:
                     if blocked:
                         raise MirrorsBlockedError(_CDN_BLOCKED_MSG)
-                    raise Exception("AES 金鑰取得失敗")
+                    raise Exception(T('console_aes_key_failed'))
                 self._key_content = resp.content
                 self._key_method = getattr(key, 'method', 'AES-128')
                 self._key_iv = getattr(key, 'iv', None)
@@ -709,7 +710,7 @@ class M3U8Crawler:
                 tsUrl = downloadurl + uri
             self._tsList.append(tsUrl)
         if not self._tsList:
-            raise Exception("m3u8 無有效片段（可能被阻擋或改版）")
+            raise Exception(T('console_m3u8_no_segments'))
 
     def _make_cipher(self, seq_num=0):
         """Create a fresh AES cipher for one segment (thread-safe)."""
@@ -772,7 +773,7 @@ class M3U8Crawler:
                 try: os.remove(p)
                 except OSError: pass
         n = len(self._tsList)
-        print(f'開始合成影片...共有 {n} 個片段', flush=True)
+        print(T('console_merge_start', n=n), flush=True)
 
         # Keep the full-size merge and remux copies on the selected download
         # volume.  Windows' default temp directory normally lives on C:, and
@@ -792,12 +793,12 @@ class M3U8Crawler:
                     seg = self._seg_savename(idx)
                     if not os.path.exists(seg):
                         if not self._cancel_job:
-                            print(f"\n片段 {idx} 遺失, 合成失敗!!!", flush=True)
+                            print('\n' + T('console_segment_missing', idx=idx), flush=True)
                         return 0
                     with open(seg, 'rb') as f:
                         shutil.copyfileobj(f, out, 1024 * 1024)
                     remaining -= 1
-                    print(f'\r合成影片中, 剩餘 {remaining} 個片段', end="")
+                    print('\r' + T('console_merge_progress', remaining=remaining), end="")
             print()
             if self._cancel_job:
                 return 0
@@ -808,7 +809,7 @@ class M3U8Crawler:
             if ok:
                 moved = self._cancellable_move(out_mp4, part)
             else:
-                print('[合成] ffmpeg 無法使用或重新封裝失敗，改用原始合併（檔案可播放，但部分播放器/NAS 拖曳進度可能異常）', flush=True)
+                print(T('console_merge_fallback'), flush=True)
                 moved = self._cancellable_move(merged, part)
             if self._cancel_job or not moved:
                 if os.path.exists(part):
@@ -824,7 +825,7 @@ class M3U8Crawler:
                 except OSError: pass
 
         spent_time = time.time() - start_time
-        print(f'\n合成完成，花費 {spent_time:.1f} 秒', flush=True)
+        print('\n' + T('console_merge_done', seconds=spent_time), flush=True)
         self._deleteMp4Chunks()
         if self._temp_folder != self._dest_folder:
             try: os.removedirs(self._temp_folder)
@@ -834,7 +835,7 @@ class M3U8Crawler:
     def _remux_to_mp4(self, merged_ts, out_mp4, workdir):
         ffmpeg = locate_ffmpeg()
         if not ffmpeg:
-            print('[合成] 找不到 ffmpeg，略過重新封裝', flush=True)
+            print(T('console_remux_missing_ffmpeg'), flush=True)
             return False
         ff_dir = _ffmpeg_safe_dir(workdir)
         in_arg = os.path.join(ff_dir, os.path.basename(merged_ts))
@@ -844,7 +845,7 @@ class M3U8Crawler:
                '-fflags', '+genpts', '-i', in_arg,
                '-c', 'copy', '-movflags', '+faststart',
                '-avoid_negative_ts', 'make_zero', out_arg]
-        print('正在重新封裝為可正常拖曳的 MP4 ...', flush=True)
+        print(T('console_remux_start'), flush=True)
         try:
             with open(log_path, 'wb') as errf:
                 proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL,
@@ -861,7 +862,7 @@ class M3U8Crawler:
                 finally:
                     self._ffmpeg_proc = None
         except Exception as e:
-            print(f'[合成] ffmpeg 執行錯誤: {e}', flush=True)
+            print(T('console_remux_error', error=e), flush=True)
             return False
         if self._cancel_job:
             return False
@@ -873,7 +874,7 @@ class M3U8Crawler:
                 tail = f.read()[-800:]
         except Exception:
             pass
-        print(f'[合成] ffmpeg 重新封裝失敗 rc={proc.returncode}: {tail}', flush=True)
+        print(T('console_remux_failed', rc=proc.returncode, tail=tail), flush=True)
         return False
 
     def _scrape(self, task):
@@ -911,11 +912,13 @@ class M3U8Crawler:
                 done = self._job_total - remain
                 remain_time = (remain * elapsed / done) if done > 0 else 0
                 if remain_time > 60:
-                    rem_str = f"{remain_time//60:.0f}分 {remain_time%60:.0f}秒"
+                    rem_str = T('console_unit_min_sec',
+                                m=remain_time // 60, s=remain_time % 60)
                 else:
-                    rem_str = f"{remain_time:.0f}秒"
+                    rem_str = T('console_unit_sec', s=remain_time)
                 speed_str = f"{speed/1024:.0f} KB/s" if speed < 1024*1024 else f"{speed/1024/1024:.1f} MB/s"
-                print(f'\r下載中: {done}/{self._job_total} 片段 | {speed_str} | 剩餘 {rem_str}  ', end='', flush=True)
+                print('\r' + T('console_download_progress', done=done, total=self._job_total,
+                               speed=speed_str, eta=rem_str), end='', flush=True)
                 if self._progress_callback:
                     self._progress_callback(done, self._job_total, speed)
             return True
@@ -927,7 +930,8 @@ class M3U8Crawler:
         self._bytes_downloaded = 0
         total = len(self._tsList)
         self._job_total = len(self._pending_set)
-        print(f'共 {total} 片段，已完成 {total - self._job_total}，剩餘 {self._job_total}...', flush=True)
+        print(T('console_segments_status', total=total,
+                 done=total - self._job_total, remaining=self._job_total), flush=True)
 
         max_rounds = max(1, int(getattr(
             self, '_segment_retry_rounds',
@@ -950,7 +954,8 @@ class M3U8Crawler:
             if still_pending == 0:
                 break
             if round_num < max_rounds:
-                print(f'\n重試第 {round_num} 次，剩餘 {still_pending} 片段...', flush=True)
+                print('\n' + T('console_retry_round', round_num=round_num,
+                               pending=still_pending), flush=True)
                 if not self._cancel_job:
                     delay = min(
                         retry_base_delay * round_num,
@@ -963,9 +968,9 @@ class M3U8Crawler:
         if not self._cancel_job:
             final_pending = len(self._pending_set)
             if final_pending == 0:
-                print(f'\n爬取完成！花費 {spent/60:.1f} 分鐘', flush=True)
+                print('\n' + T('console_crawl_complete', minutes=spent / 60), flush=True)
             else:
-                print(f'\n爬取結束，{final_pending} 個片段失敗', flush=True)
+                print('\n' + T('console_crawl_failed', pending=final_pending), flush=True)
 
     def _prepareCrawl(self):
         self._pending_set = set()
@@ -1018,12 +1023,12 @@ class M3U8Crawler:
                 pending = len(self._pending_set)
                 raise DownloadIncompleteError(pending)
         else:
-            print("檔案已存在!!", flush=True)
+            print(T('console_file_exists'), flush=True)
 
         return not self._cancel_job
 
     def cancel_download(self, cleanup=True):
-        print("\n取消下載....", flush=True)
+        print('\n' + T('console_cancelling'), flush=True)
         self._cancel_job = True
         if self._t2_executor:
             try: self._t2_executor.shutdown(wait=False, cancel_futures=True)
@@ -1039,7 +1044,7 @@ class M3U8Crawler:
             except Exception: pass
         if cleanup:
             self.cleanup_temp()
-        print("\n下載已取消", flush=True)
+        print('\n' + T('console_cancelled'), flush=True)
 
     def begin_concurrent_download(self):
         self._t_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)

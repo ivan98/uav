@@ -45,6 +45,7 @@ _stub_runtime_dependency('cloudscraper', _cloudscraper_stub)
 _stub_runtime_dependency('m3u8', _m3u8_stub)
 _stub_runtime_dependency('customtkinter', _customtkinter_stub)
 
+from uav_downloader.i18n import locales
 from uav_downloader.sites import base as crawler_mod
 from uav_downloader.sites import supjav as supjav_mod
 from bs4 import BeautifulSoup
@@ -61,6 +62,16 @@ from uav_downloader.sites.supjav import (
     _streamtape_direct_url,
     _strip_fake_header,
 )
+
+
+@pytest.fixture(autouse=True)
+def _english_console_output():
+    previous = locales.get_lang()
+    locales.set_lang('en')
+    try:
+        yield
+    finally:
+        locales.set_lang(previous)
 
 
 class _FakeResp:
@@ -381,7 +392,7 @@ def test_direct_download_uses_parallel_ranges_and_assembles_file(
     # progress only via _progress_callback (unset on the CLI), so `uav-browser
     # --nogui` showed no console output at all until the file finished.
     out = capsys.readouterr().out
-    assert '下載中' in out
+    assert 'Downloading' in out
     assert '%' in out
 
 
@@ -506,7 +517,7 @@ def test_direct_download_keeps_serial_fallback_without_range_support(
     assert (tmp_path / 'serial.mp4').read_bytes() == payload
 
     out = capsys.readouterr().out
-    assert '下載中' in out
+    assert 'Downloading' in out
     assert '%' in out
 
 
@@ -515,7 +526,7 @@ def test_format_direct_progress_omits_percent_and_eta_when_total_unknown():
         done=1024 * 1024, total=0, speed=1024 * 1024)
 
     assert '%' not in line
-    assert '剩餘' not in line
+    assert 'remaining' not in line
     assert '1.0 MB' in line
 
 
@@ -524,7 +535,7 @@ def test_format_direct_progress_shows_percent_and_eta_when_total_known():
         done=25 * 1024 * 1024, total=100 * 1024 * 1024, speed=5 * 1024 * 1024)
 
     assert '25%' in line
-    assert '剩餘' in line
+    assert 'remaining' in line
 
 
 def test_create_m3u8_raises_on_zero_segments(monkeypatch):
