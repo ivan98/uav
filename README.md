@@ -37,3 +37,8 @@ commit-by-commit history.
   `--watch-urls-file {once,forever}` flag when `--url` is omitted — without
   the flag, it still falls back to the interactive prompt exactly as
   before.
+- Fixed a restart loophole in `urls.txt`-watch mode: a killed-and-restarted
+  process used to re-read and re-attempt every URL still in the file,
+  since dedup only lived in memory. A URL's line is now removed from the
+  file once it's fully handled (downloaded, or already on disk); failed
+  URLs are left in place so a restart retries them.

@@ -35,6 +35,29 @@ def _dedupe(urls):
     return out
 
 
+def remove_consumed_url(path, url):
+    """Drop every line matching `url` exactly from `path`.
+
+    Call this once a URL has been fully handled (downloaded, or already on
+    disk) so a later restart's dedup — in-memory only, and reset on every
+    run — doesn't see it as new again. Leave failed URLs in place so a
+    restart retries them. No-op if the file or the URL in it doesn't exist.
+    """
+    try:
+        with open(path, encoding='utf-8') as fh:
+            lines = fh.readlines()
+    except OSError:
+        return
+    kept = [ln for ln in lines if ln.strip() != url]
+    if kept == lines:
+        return
+    try:
+        with open(path, 'w', encoding='utf-8') as fh:
+            fh.writelines(kept)
+    except OSError:
+        pass
+
+
 class _FileChangeHandler(FileSystemEventHandler):
     """Wakes the waiting generator whenever `target_path` is created,
     written to, or replaced via an atomic rename."""

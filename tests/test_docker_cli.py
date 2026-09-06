@@ -75,3 +75,25 @@ def test_docker_waits_for_urls_file_when_no_url_given(monkeypatch, tmp_path):
     assert captured == [
         ('https://jable.tv/videos/example/', str(tmp_path), None),
     ]
+    assert (tmp_path / 'urls.txt').read_text(encoding='utf-8') == ''
+
+
+def test_docker_leaves_a_failed_url_in_the_file_for_retry(monkeypatch, tmp_path):
+    def _create(url, dest, max_workers=None):
+        raise Exception('boom')
+
+    monkeypatch.setattr(sys, 'argv', ['docker_cli.py'])
+    monkeypatch.setenv('DOWNLOAD_DIR', str(tmp_path))
+    monkeypatch.delenv('MAX_WORKERS_PER_VIDEO', raising=False)
+    monkeypatch.delenv('URLS', raising=False)
+    monkeypatch.delenv('URL', raising=False)
+    monkeypatch.delenv('URLS_FILE', raising=False)
+    monkeypatch.delenv('URLS_WATCH_MODE', raising=False)
+    monkeypatch.setattr(docker_cli.M3U8Sites, 'CreateSite', _create)
+
+    (tmp_path / 'urls.txt').write_text(
+        'https://jable.tv/videos/broken/\n', encoding='utf-8')
+
+    assert docker_cli.main() == 1
+    assert (tmp_path / 'urls.txt').read_text(encoding='utf-8') == (
+        'https://jable.tv/videos/broken/\n')

@@ -95,3 +95,13 @@ is not repeated here.
   `requirements.txt`/`requirements-docker.txt`. Documented in
   `cli/args.py`'s help text, `docs/docker-cli.md`, and all four README
   locales.
+- **(major)** Closed a restart loophole in `urls.txt`-watch mode: the
+  dedup in `iter_url_batches()` is in-memory only, so a killed-and-restarted
+  process would re-read every URL still in the file and re-attempt it. Added
+  `remove_consumed_url()` to `core/urls_watch.py`, called from both
+  `cli/headless.py` and `consoles_main` right after a URL is fully handled
+  (downloaded, or already on disk) — its line is dropped from the file so a
+  restart won't see it again. Failed URLs are deliberately left in place so
+  a restart retries them, rather than silently dropping a permanently-bad
+  URL after one attempt. Added regression tests covering both the
+  consumed-on-success and kept-on-failure paths.

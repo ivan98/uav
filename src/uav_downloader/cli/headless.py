@@ -14,6 +14,12 @@ by $URLS_WATCH_MODE:
   forever keep watching indefinitely; new lines appended to the file later
           are picked up and downloaded without restarting the container.
 
+A URL's line is removed from the file once it's been fully handled
+(downloaded, or already on disk) — the in-memory dedup used in `forever`
+mode doesn't survive a restart, so this keeps a restarted container from
+re-processing everything still sitting in the file. Failed URLs are left
+in place so a restart retries them.
+
 Examples:
   docker run --rm -v /nas/videos:/downloads ghcr.io/alos21750/uav-downloader https://jable.tv/videos/abc-123/
   docker run --rm -v /nas/videos:/downloads -e URLS_FILE=/downloads/urls.txt ghcr.io/alos21750/uav-downloader
@@ -35,7 +41,7 @@ except Exception:
 
 from uav_downloader import sites as M3U8Sites
 from uav_downloader.core import config
-from uav_downloader.core.urls_watch import iter_url_batches
+from uav_downloader.core.urls_watch import iter_url_batches, remove_consumed_url
 from uav_downloader.sites import base as M3U8Crawler
 
 
@@ -97,6 +103,7 @@ def main():
                     print(f"[失敗] 無法解析影片（版面改版 / 被 Cloudflare 阻擋 / 影片不存在）: {url}", flush=True); fail += 1; continue
                 site.start_download()
                 print(f"[完成] {url}", flush=True); ok += 1
+                remove_consumed_url(urls_path, url)
             except Exception as exc:
                 print(f"[錯誤] {url}: {exc}", flush=True); fail += 1
         print(f"\n===== 完成 {ok} 個，失敗 {fail} 個 =====", flush=True)

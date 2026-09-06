@@ -28,3 +28,5 @@ CLAUDE.md
 .wrangler/
 *.log
 crash_log.txt
+# uav-browser/uav-downloader --watch-urls-file drop queue (personal, can land in repo root via -o .)
+/urls.txt

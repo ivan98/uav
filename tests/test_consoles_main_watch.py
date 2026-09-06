@@ -61,3 +61,24 @@ def test_no_url_with_watch_mode_waits_for_urls_file(monkeypatch, tmp_path):
 
     assert not t.is_alive()
     assert captured == ['https://example.test/watched']
+    assert (tmp_path / 'urls.txt').read_text(encoding='utf-8') == ''
+
+
+def test_watch_mode_leaves_a_failed_url_in_the_file_for_retry(
+        monkeypatch, tmp_path):
+    def _fake_create_site(url, dest, max_workers=None, filename_mode=None):
+        raise Exception('boom')
+
+    monkeypatch.setattr(M3U8Sites, 'create_site', _fake_create_site)
+
+    (tmp_path / 'urls.txt').write_text(
+        'https://example.test/broken\n', encoding='utf-8')
+
+    try:
+        M3U8Sites.consoles_main(
+            '', str(tmp_path), watch_urls_file='once')
+    except Exception:
+        pass
+
+    assert (tmp_path / 'urls.txt').read_text(encoding='utf-8') == (
+        'https://example.test/broken\n')

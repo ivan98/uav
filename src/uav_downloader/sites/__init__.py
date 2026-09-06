@@ -7,7 +7,7 @@ import os
 from . import hanime1, jabletv, missav, supjav
 from .legacy import sites_91porn, sites_javdb
 from uav_downloader.core import config
-from uav_downloader.core.urls_watch import iter_url_batches
+from uav_downloader.core.urls_watch import iter_url_batches, remove_consumed_url
 from uav_downloader.i18n.locales import T, set_lang
 
 
@@ -91,6 +91,7 @@ def CreateSiteUrlList(url, silence=False):  # noqa: N802
 def consoles_main(url, dest=None, max_workers=None, filename_mode=None,
                    watch_urls_file=None):
     set_lang(config.get_ui_lang() or 'en')
+    urls_path = None
     if url:
         url_batches = [[url]]
     elif watch_urls_file:
@@ -107,6 +108,8 @@ def consoles_main(url, dest=None, max_workers=None, filename_mode=None,
             if job and job.is_url_vaildate():
                 job.start_download()
                 print(T('console_job_done'))
+                if urls_path:
+                    remove_consumed_url(urls_path, one_url)
 
 
 if __name__ == "__main__":

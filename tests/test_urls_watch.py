@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-from uav_downloader.core.urls_watch import iter_url_batches
+from uav_downloader.core.urls_watch import iter_url_batches, remove_consumed_url
 
 
 def test_yields_initial_urls_immediately_without_touching_disk(tmp_path):
@@ -85,3 +85,37 @@ def test_forever_yields_each_new_batch_without_repeating_earlier_urls(tmp_path):
 
     assert batches == [['https://a.example/'], ['https://b.example/']]
     gen.close()
+
+
+def test_remove_consumed_url_drops_only_the_matching_line(tmp_path):
+    path = tmp_path / 'urls.txt'
+    path.write_text(
+        'https://a.example/\n# comment\nhttps://b.example/\n', encoding='utf-8')
+
+    remove_consumed_url(str(path), 'https://a.example/')
+
+    assert path.read_text(encoding='utf-8') == '# comment\nhttps://b.example/\n'
+
+
+def test_remove_consumed_url_is_a_noop_when_url_absent_or_file_missing(tmp_path):
+    path = tmp_path / 'urls.txt'
+    path.write_text('https://a.example/\n', encoding='utf-8')
+
+    remove_consumed_url(str(path), 'https://not-there.example/')
+    assert path.read_text(encoding='utf-8') == 'https://a.example/\n'
+
+    remove_consumed_url(str(tmp_path / 'missing.txt'), 'https://a.example/')
+
+
+def test_restart_does_not_reprocess_a_consumed_url(tmp_path):
+    path = tmp_path / 'urls.txt'
+    path.write_text('https://a.example/\nhttps://b.example/\n', encoding='utf-8')
+
+    first_run = next(iter_url_batches(str(path), 'once'))
+    assert first_run == ['https://a.example/', 'https://b.example/']
+    remove_consumed_url(str(path), 'https://a.example/')
+    remove_consumed_url(str(path), 'https://b.example/')
+
+    # A fresh generator's in-memory dedup starts empty (simulating a
+    # restart); it must not see either URL again since both were consumed.
+    assert path.read_text(encoding='utf-8') == ''
