@@ -72,6 +72,18 @@
                 pip install --quiet --disable-pip-version-check -r "$req_file" \
                   && echo "$req_hash" > "$stamp"
               fi
+
+              # Editable install of the project itself (deps come from the
+              # requirements file above) so the console scripts — uav,
+              # uav-browser, uav-watcher, ... — land on PATH. Re-runs when
+              # pyproject.toml changes (entry points live there).
+              pkg_stamp="$venv_dir/.pkg-stamp"
+              pkg_hash="$(sha256sum pyproject.toml | cut -d' ' -f1)"
+              if [ ! -f "$pkg_stamp" ] || [ "$(cat "$pkg_stamp")" != "$pkg_hash" ]; then
+                echo "uav-downloader: installing project (editable)"
+                pip install --quiet --disable-pip-version-check --no-deps -e . \
+                  && echo "$pkg_hash" > "$pkg_stamp"
+              fi
             '';
           };
       in

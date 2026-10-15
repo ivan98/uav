@@ -152,3 +152,12 @@ is not repeated here.
   path (machine-specific; refresh with `nix flake update nixpkgs` after a
   `nixos-rebuild`). Verified on 3.13: full test suite passes and the GUI/AI
   wheels (numpy, ctranslate2, sentencepiece, opencc, curl_cffi) import fine.
+
+## 2026-10-15
+
+- **(major)** Dev shells now install the project itself (`pip install --no-deps
+  -e .`) so the console scripts (`uav`, `uav-browser`, `uav-watcher`, ...) are
+  on `PATH`; previously the hook only installed requirements, so
+  `nix develop .#gui --command uav-browser` failed with "exec: uav-browser:
+  not found". Re-runs when `pyproject.toml` changes (tracked by
+  `.venv*/.pkg-stamp`).
