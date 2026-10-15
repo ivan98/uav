@@ -2,7 +2,12 @@
   description = "Dev environment for uav-downloader";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    # Resolves through the flake registry, which on NixOS points at the
+    # system's own nixpkgs — so the dev shells reuse the system's Python and
+    # libraries from /nix/store instead of downloading a second copy. The lock
+    # file pins that store path; after a `nixos-rebuild`, run
+    # `nix flake update nixpkgs` to follow the new system nixpkgs.
+    nixpkgs.url = "nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -11,7 +16,9 @@
       let
         pkgs = import nixpkgs { inherit system; };
 
-        python = pkgs.python312;
+        # nixpkgs' default Python — whatever the system's nixpkgs ships, rather
+        # than a pinned minor version that would be a separate download.
+        python = pkgs.python3;
 
         # Lets pip-installed binary wheels (numpy, ctranslate2, pycryptodome,
         # curl_cffi, ...) dlopen libstdc++/libgomp/zlib at runtime — NixOS has
@@ -28,7 +35,7 @@
         # Exposing it via PYTHONPATH lets stdlib `tkinter` (already present in
         # every venv) find it, without needing a python.withPackages wrapper
         # (which `venv --system-site-packages` can't see through anyway).
-        tkinterPythonPath = "${python.pkgs.tkinter}/lib/python3.12/site-packages";
+        tkinterPythonPath = "${python.pkgs.tkinter}/${python.sitePackages}";
 
         mkPipShell = { venvDir, requirementsFile, extraPackages ? [ ], extraPythonPath ? null }:
           pkgs.mkShell {
@@ -42,6 +49,14 @@
               venv_dir="${venvDir}"
               req_file="${requirementsFile}"
               stamp="$venv_dir/.req-stamp"
+
+              # Recreate the venv if the system Python moved to another
+              # minor version (venv/bin/python would dangle or be stale).
+              if [ -d "$venv_dir" ] && \
+                 [ "$("$venv_dir/bin/python" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)" != "${python.pythonVersion}" ]; then
+                echo "uav-downloader: Python changed, recreating $venv_dir"
+                rm -rf "$venv_dir"
+              fi
 
               if [ ! -d "$venv_dir" ]; then
                 echo "uav-downloader: creating virtualenv in $venv_dir"

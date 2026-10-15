@@ -142,3 +142,13 @@ is not repeated here.
   watch-forever mode, since a broken destination won't recover). Adjusted
   `tests/test_storage_failures.py` (`gather_initial_urls`) and
   `tests/test_supjav.py` (locale-independent message match, `capsys`) to match.
+- **(major)** Dev shells now use the system's Python instead of a pinned
+  `python312` from a separate nixpkgs revision. `flake.nix`'s `nixpkgs` input
+  is the registry's `nixpkgs` (the NixOS system's own), the interpreter is
+  `pkgs.python3` (3.13.14 here) and the tkinter path is derived from
+  `python.sitePackages` instead of a hardcoded 3.12 path, so `nix develop`
+  no longer downloads a second Python. The shell hook recreates the venv when
+  the Python minor version changes. `flake.lock` now pins the system's store
+  path (machine-specific; refresh with `nix flake update nixpkgs` after a
+  `nixos-rebuild`). Verified on 3.13: full test suite passes and the GUI/AI
+  wheels (numpy, ctranslate2, sentencepiece, opencc, curl_cffi) import fine.

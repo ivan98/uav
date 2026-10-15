@@ -60,3 +60,4 @@ commit-by-commit history.
   URLs are left in place so a restart retries them.
 - Merged upstream: SupJav search rate-limit retries and AI subtitles for videos already on disk (slow-download requeue and storage-failure fixes still pending, they conflict with this fork).
 - Merged the rest of upstream (UAV 3.2): slow-download requeue, storage-failure handling, SupJav multi-provider fallbacks, safe Browser shutdown.
+- Nix dev shells now use the system's Python (3.13) instead of a separate pinned 3.12; flake.lock follows the system nixpkgs.
