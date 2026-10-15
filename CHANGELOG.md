@@ -105,3 +105,18 @@ is not repeated here.
   a restart retries them, rather than silently dropping a permanently-bad
   URL after one attempt. Added regression tests covering both the
   consumed-on-success and kept-on-failure paths.
+
+## 2026-10-15
+
+- **(major)** Merged the conflict-free part of upstream
+  `Alos21750/UAV-Downloader` (upstream commits up to `6f3b57c`, via
+  `7bd9ed2`, `bc06cfe`, `6f3b57c`). Brings in: SupJav search rate limits are
+  now waited out with retries instead of being reported as a block (PR #49);
+  `uav-browser` can generate AI subtitles for videos already on disk (PR #50,
+  including a fix for reporting a moved file when retrying); plus upstream's
+  star-history refreshes. Deliberately **not** merged yet because they
+  conflict with this fork: slow-download requeue (`07c2b46`, `805e6fd`; clashes
+  in `apps/browse.py` with the local-subtitles change), the storage-failure
+  retry fix (`5f256d7`, conflicts in `cli/headless.py` and `sites/base.py`),
+  the UAV 3.2 integration (`48e6b77`) and the frozen-startup Browser fix
+  (`ebf29fb`).

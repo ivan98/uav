@@ -42,3 +42,4 @@ commit-by-commit history.
   since dedup only lived in memory. A URL's line is now removed from the
   file once it's fully handled (downloaded, or already on disk); failed
   URLs are left in place so a restart retries them.
+- Merged upstream: SupJav search rate-limit retries and AI subtitles for videos already on disk (slow-download requeue and storage-failure fixes still pending, they conflict with this fork).
