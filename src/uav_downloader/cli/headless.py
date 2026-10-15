@@ -42,6 +42,7 @@ except Exception:
 from uav_downloader import sites as M3U8Sites
 from uav_downloader.core import config
 from uav_downloader.core.urls_watch import iter_url_batches, remove_consumed_url
+from uav_downloader.core.storage import StorageWriteError
 from uav_downloader.sites import base as M3U8Crawler
 
 
@@ -90,6 +91,7 @@ def main():
           f"(mode={mode})", flush=True)
 
     ok = fail = 0
+    storage_failed = False
     for urls in iter_url_batches(
             urls_path, mode, initial_urls=gather_initial_urls()):
         for url in urls:
@@ -104,9 +106,16 @@ def main():
                 site.start_download()
                 print(f"[完成] {url}", flush=True); ok += 1
                 remove_consumed_url(urls_path, url)
+            except StorageWriteError as exc:
+                print(f'[Storage error] {url}: {exc}', flush=True)
+                fail += 1
+                storage_failed = True
+                break
             except Exception as exc:
                 print(f"[錯誤] {url}: {exc}", flush=True); fail += 1
         print(f"\n===== 完成 {ok} 個，失敗 {fail} 個 =====", flush=True)
+        if storage_failed:
+            break  # a broken destination won't recover; don't keep watching
     return 0 if fail == 0 else 1
 
 

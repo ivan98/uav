@@ -127,3 +127,18 @@ is not repeated here.
   fork-only docs that had been added to the zh-TW copy (`--watch-urls-file`,
   `URLS_WATCH_MODE`) moved into a "Fork-specific documentation" section of
   `README.ilgw.md`. The README changelog tail now lives in `README.ilgw.md`.
+- **(major)** Merged the rest of upstream `Alos21750/UAV-Downloader`
+  (`upstream/master`, UAV 3.2). Upstream brings: opt-in automatic requeue of
+  slow downloads; storage-failure handling (`core/storage.py`) so a
+  full/unplugged destination stops retries and source fallbacks instead of
+  burning through them; the SupJav source refactor (EVS/LUC/VAS/VOE providers
+  kept as ordered HLS fallbacks, SSRF-style URL validation); the UAV 3.2
+  issue/PR integration; a safe Browser shutdown during frozen startup; and the
+  Windows build/version updates. Conflict resolutions: took upstream's logic in
+  `sites/supjav.py` and `sites/base.py` but kept this fork's i18n (`T(...)`)
+  for user-visible strings and console progress for the Streamtape fallback;
+  in `cli/headless.py` combined the fork's `urls.txt` wait/consume loop with
+  upstream's `StorageWriteError` handling (a storage error now also ends
+  watch-forever mode, since a broken destination won't recover). Adjusted
+  `tests/test_storage_failures.py` (`gather_initial_urls`) and
+  `tests/test_supjav.py` (locale-independent message match, `capsys`) to match.
