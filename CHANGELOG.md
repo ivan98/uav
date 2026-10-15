@@ -2,7 +2,7 @@
 
 All notable changes to this fork are documented here, one entry per commit.
 Entries marked **(major)** are also appended to the "Changelog" section at
-the end of `README.md`. History before the fork point belongs to
+the end of `README.ilgw.md`. History before the fork point belongs to
 [Alos21750/UAV-Downloader](https://github.com/Alos21750/UAV-Downloader) and
 is not repeated here.
 
@@ -120,3 +120,10 @@ is not repeated here.
   retry fix (`5f256d7`, conflicts in `cli/headless.py` and `sites/base.py`),
   the UAV 3.2 integration (`48e6b77`) and the frozen-startup Browser fix
   (`ebf29fb`).
+- Reversed the fork-point README swap: `README.md` is once again upstream's
+  file verbatim (so upstream README changes merge without conflicts, and the
+  README-checking tests see what they expect), our own README now lives in
+  `README.ilgw.md`, and the leftover `README.zh-TW.md` copy is removed. The
+  fork-only docs that had been added to the zh-TW copy (`--watch-urls-file`,
+  `URLS_WATCH_MODE`) moved into a "Fork-specific documentation" section of
+  `README.ilgw.md`. The README changelog tail now lives in `README.ilgw.md`.
